@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="hi">
-<head>
+<head> 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ओम बेकरी - ग्राहक प्रबंधन</title>
@@ -19,10 +19,11 @@
             margin: auto;
         }
         h2 { text-align: center; color: #d35400; }
-        .form-group, .search-group {
+        h3 { color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; }
+        .form-group, .search-group, .reminder-section {
             margin-bottom: 15px;
         }
-        input[type="text"], input[type="number"], select {
+        input[type="text"], input[type="number"], input[type="date"], select {
             width: 100%;
             padding: 10px;
             margin-top: 5px;
@@ -30,10 +31,6 @@
             border: 1px solid #ccc;
             border-radius: 4px;
             font-size: 14px;
-        }
-        select {
-            background-color: #fff;
-            cursor: pointer;
         }
         .search-box {
             background-color: #f1f1f1;
@@ -50,6 +47,14 @@
             font-size: 16px;
         }
         button:hover { background-color: #219150; }
+        .btn-reminder {
+            background-color: #e67e22;
+            padding: 5px 10px;
+            font-size: 12px;
+            width: auto;
+            display: inline-block;
+        }
+        .btn-reminder:hover { background-color: #d35400; }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -72,6 +77,13 @@
             cursor: pointer;
         }
         .btn-delete:hover { background-color: #a93226; }
+        .alert-box {
+            background-color: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -79,28 +91,36 @@
 <div class="container">
     <h2>🍰 ओम बेकरी - ग्राहक लिस्ट 🍰</h2>
     
-    <!-- ग्राहक जोड़ने और मैसेज चुनने का फॉर्म -->
+    <!-- 🔔 आज के जन्मदिन/एनिवर्सरी का ऑटो-रिमाइंडर सेक्शन -->
+    <div id="reminderSection" class="reminder-section" style="display: none;">
+        <h3>🎉 आज के विशेष संदेश (सालगिरह/जन्मदिन रिमाइंडर)</h3>
+        <div id="reminderList"></div>
+    </div>
+
+    <!-- ग्राहक जोड़ने का फॉर्म -->
     <div class="form-group">
-        <label><b>ग्राहक की जानकारी:</b></label>
+        <h3>👤 नया ग्राहक जोड़ें</h3>
         <input type="text" id="custName" placeholder="ग्राहक का नाम डालें">
         <input type="number" id="custPhone" placeholder="मोबाइल नंबर डालें">
         
-        <label style="margin-top: 10px; display: block;"><b>भेजे जाने वाला मैसेज चुनें:</b></label>
+        <label style="margin-top: 10px; display: block;"><b>तारीख चुनें (जन्मदिन या एनिवर्सरी की तारीख):</b></label>
+        <input type="date" id="custDate">
+
+        <label style="margin-top: 10px; display: block;"><b>मैसेज का प्रकार:</b></label>
         <select id="messageType">
-            <option value="welcome">🍰 स्वागत मैसेज (Welcome Message)</option>
             <option value="birthday">🎂 जन्मदिन की शुभकामनाएं (Birthday Wish)</option>
             <option value="anniversary">💐 एनिवर्सरी की शुभकामनाएं (Anniversary Wish)</option>
         </select>
 
-        <button onclick="addCustomer()" style="margin-top: 15px;">डेटा सेव करें और WhatsApp भेजें</button>
+        <button onclick="addCustomer()" style="margin-top: 15px;">डेटा सेव करें और आज ही WhatsApp भेजें</button>
     </div>
 
     <hr>
 
-    <!-- 🔍 सर्च बॉक्स ऑप्शन -->
+    <!-- 🔍 लाइव सर्च बॉक्स -->
     <div class="search-group">
-        <label style="font-weight: bold; color: #333;">🔍 ग्राहक खोजें (नाम या मोबाइल नंबर डालें):</label>
-        <input type="text" id="searchBar" class="search-box" placeholder="यहाँ टाइप करें..." onkeyup="filterCustomers()">
+        <h3>🔍 ग्राहक खोजें</h3>
+        <input type="text" id="searchBar" class="search-box" placeholder="नाम या मोबाइल नंबर से खोजें..." onkeyup="filterCustomers()">
     </div>
 
     <!-- ग्राहकों की तालिका (Table) -->
@@ -109,6 +129,7 @@
             <tr>
                 <th>नाम</th>
                 <th>मोबाइल नंबर</th>
+                <th>तारीख और प्रकार</th>
                 <th>एक्शन</th>
             </tr>
         </thead>
@@ -125,66 +146,76 @@
     const WHATSAPP_TOKEN = "YOUR_PERMANENT_ACCESS_TOKEN_HERE"; 
     const PHONE_NUMBER_ID = "YOUR_PHONE_NUMBER_ID_HERE";     
 
-    // 🏷️ मेटा (Meta) पर अप्रूव किए गए टेम्पलेट्स के नाम यहाँ लिखें:
-    const TEMPLATE_WELCOME = "welcome_customer";       // स्वागत टेम्पलेट का नाम
-    const TEMPLATE_BIRTHDAY = "om_bakery_birthday";    // जन्मदिन वाले टेम्पलेट का नाम
-    const TEMPLATE_ANNIVERSARY = "om_bakery_anniversary"; // एनिवर्सरी वाले टेम्पलेट का नाम
+    const TEMPLATE_BIRTHDAY = "om_bakery_birthday";    
+    const TEMPLATE_ANNIVERSARY = "om_bakery_anniversary"; 
 
-    let customers = [
-        { name: "राहुल कुमार", phone: "9876543210" },
-        { name: "अमित शर्मा", phone: "9123456789" }
-    ];
+    // ब्राउज़र की मेमरी (localStorage) से पुराना डेटा लोड करना, ताकि 2000 कस्टमर भी सुरक्षित रहें
+    let customers = JSON.parse(localStorage.getItem("omBakeryCustomers")) || [];
 
+    // 1. लिस्ट को स्क्रीन पर दिखाने का फंक्शन
     function displayCustomers(dataToDisplay) {
         const tableBody = document.getElementById("customerTableBody");
         tableBody.innerHTML = ""; 
 
         if(dataToDisplay.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:red;">कोई ग्राहक नहीं मिला!</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">कोई ग्राहक नहीं मिला!</td></tr>`;
             return;
         }
 
         dataToDisplay.forEach((customer) => {
+            let typeText = customer.type === "birthday" ? "🎂 जन्मदिन" : "💐 एनिवर्सरी";
             let row = `<tr>
                 <td>${customer.name}</td>
                 <td>${customer.phone}</td>
+                <td>${customer.date} (${typeText})</td>
                 <td><button class="btn-delete" onclick="deleteCustomer('${customer.phone}')">डिलीट</button></td>
             </tr>`;
             tableBody.innerHTML += row;
         });
     }
 
+    // 2. नया ग्राहक जोड़ने के लिए फंक्शन (जो आज मैसेज भेजेगा और तारीख सेव करेगा)
     function addCustomer() {
         let name = document.getElementById("custName").value.trim();
         let phone = document.getElementById("custPhone").value.trim();
-        let msgType = document.getElementById("messageType").value; // चुना हुआ मैसेज टाइप
+        let date = document.getElementById("custDate").value;
+        let msgType = document.getElementById("messageType").value;
 
-        if (name === "" || phone === "") {
-            alert("कृपया नाम और नंबर दोनों भरें!");
+        if (name === "" || phone === "" || date === "") {
+            alert("कृपया नाम, नंबर और तारीख तीनों भरें!");
             return;
         }
 
         // लिस्ट में जोड़ें
-        customers.push({ name: name, phone: phone });
+        customers.push({ name: name, phone: phone, date: date, type: msgType });
         
-        // 🚀 चुना हुआ मैसेज टाइप पास करके WhatsApp भेजें
+        // मेमरी में परमानेंट सेव करें
+        localStorage.setItem("omBakeryCustomers", JSON.stringify(customers));
+        
+        // 🚀 आज के दिन तुरंत पहला WhatsApp मैसेज भेजें
         sendWhatsAppNotification(name, phone, msgType);
 
-        // इनपुट बॉक्स खाली करें
+        // फॉर्म खाली करें
         document.getElementById("custName").value = "";
         document.getElementById("custPhone").value = "";
+        document.getElementById("custDate").value = "";
 
-        // लिस्ट अपडेट करें
+        // स्क्रीन अपडेट करें
         filterCustomers(); 
+        checkDailyReminders(); // रिमाइंडर लिस्ट अपडेट करें
     }
 
+    // 3. ग्राहक डिलीट करने के लिए फंक्शन
     function deleteCustomer(phone) {
-        if(confirm("क्या आप वाकई इस ग्राहक को डिलीट करना चाहते हैं?")) {
+        if(confirm("क्या आप वाकई इस ग्राहक को लिस्ट से हटाना चाहते हैं?")) {
             customers = customers.filter(customer => customer.phone !== phone);
+            localStorage.setItem("omBakeryCustomers", JSON.stringify(customers));
             filterCustomers(); 
+            checkDailyReminders();
         }
     }
 
+    // 4. 🔍 लाइव सर्च फंक्शन
     function filterCustomers() {
         let searchValue = document.getElementById("searchBar").value.toLowerCase().trim();
         let filteredList = customers.filter(customer => {
@@ -193,18 +224,49 @@
         displayCustomers(filteredList);
     }
 
-    // 📲 WhatsApp API फंक्शन (जो अब अलग-अलग टेम्पलेट संभाल सकता है)
+    // 5. 🔔 ऑटो-रिमाइंडर चेक करने का फंक्शन (जो हर साल उसी तारीख को पकड़ेगा)
+    function checkDailyReminders() {
+        const reminderSection = document.getElementById("reminderSection");
+        const reminderList = document.getElementById("reminderList");
+        reminderList.innerHTML = "";
+
+        // आज की तारीख (Format: MM-DD) निकालना ताकि साल (Year) का फर्क न पड़े
+        let today = new Date();
+        let todayMMDD = String(today.getMonth() + 1).padStart(2, '0') + "-" + String(today.getDate()).padStart(2, '0');
+
+        let matches = [];
+
+        customers.forEach(customer => {
+            // सेव की गई तारीख से MM-DD निकालना
+            let custDateObj = new Date(customer.date);
+            let custMMDD = String(custDateObj.getMonth() + 1).padStart(2, '0') + "-" + String(custDateObj.getDate()).padStart(2, '0');
+
+            if (todayMMDD === custMMDD) {
+                matches.push(customer);
+            }
+        });
+
+        if (matches.length > 0) {
+            reminderSection.style.display = "block";
+            matches.forEach(cust => {
+                let typeName = cust.type === "birthday" ? "जन्मदिन" : "सालगिरह (एनिवर्सरी)";
+                reminderList.innerHTML += `
+                    <div class="alert-box">
+                        🎉 आज <b>${cust.name}</b> का <b>${typeName}</b> है! 
+                        <button class="btn-reminder" onclick="sendWhatsAppNotification('${cust.name}', '${cust.phone}', '${cust.type}')">मैसेज भेजें</button>
+                    </div>`;
+            });
+        } else {
+            reminderSection.style.display = "none";
+        }
+    }
+
+    // 6. 📲 WhatsApp API भेजने का मुख्य फंक्शन
     function sendWhatsAppNotification(customerName, customerPhone, msgType) {
         let formattedPhone = customerPhone.startsWith("91") ? customerPhone : "91" + customerPhone;
         const url = `https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`;
 
-        // ड्रॉपडाउन के आधार पर सही टेम्पलेट का चुनाव करना
-        let chosenTemplate = TEMPLATE_WELCOME;
-        if (msgType === "birthday") {
-            chosenTemplate = TEMPLATE_BIRTHDAY;
-        } else if (msgType === "anniversary") {
-            chosenTemplate = TEMPLATE_ANNIVERSARY;
-        }
+        let chosenTemplate = msgType === "birthday" ? TEMPLATE_BIRTHDAY : TEMPLATE_ANNIVERSARY;
 
         const payload = {
             messaging_product: "whatsapp",
@@ -216,9 +278,7 @@
                 components: [
                     {
                         type: "body",
-                        parameters: [
-                            { type: "text", text: customerName } // यह ग्राहक का नाम टेम्पलेट में भर देगा
-                        ]
+                        parameters: [{ type: "text", text: customerName }]
                     }
                 ]
             }
@@ -235,16 +295,18 @@
         .then(response => response.json())
         .then(data => {
             if (data.messages) {
-                alert(`मैसेज सफलता पूर्वक भेज दिया गया है! (${msgType} मैसेज)`);
+                alert(`${customerName} को मैसेज सफलतापूर्वक भेज दिया गया है!`);
             } else {
                 console.error("WhatsApp API एरर:", data);
-                alert("मैसेज भेजने में एरर आया। कृपया कंसोल चेक करें।");
+                alert("मैसेज भेजने में कोई दिक्कत आई। कृपया चेक करें।");
             }
         })
-        .catch(error => console.error("नेटवर्क एरर:", error));
+        .catch(error => console.error("नेटवर्क एरer:", error));
     }
 
+    // पेज चालू होते ही डेटा लोड करें और आज के जन्मदिन चेक करें
     displayCustomers(customers);
+    checkDailyReminders();
 </script>
 
 </body>
