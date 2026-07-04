@@ -22,13 +22,18 @@
         .form-group, .search-group {
             margin-bottom: 15px;
         }
-        input[type="text"], input[type="number"] {
+        input[type="text"], input[type="number"], select {
             width: 100%;
             padding: 10px;
             margin-top: 5px;
             box-sizing: border-box;
             border: 1px solid #ccc;
             border-radius: 4px;
+            font-size: 14px;
+        }
+        select {
+            background-color: #fff;
+            cursor: pointer;
         }
         .search-box {
             background-color: #f1f1f1;
@@ -74,19 +79,31 @@
 <div class="container">
     <h2>🍰 ओम बेकरी - ग्राहक लिस्ट 🍰</h2>
     
+    <!-- ग्राहक जोड़ने और मैसेज चुनने का फॉर्म -->
     <div class="form-group">
+        <label><b>ग्राहक की जानकारी:</b></label>
         <input type="text" id="custName" placeholder="ग्राहक का नाम डालें">
         <input type="number" id="custPhone" placeholder="मोबाइल नंबर डालें">
-        <button onclick="addCustomer()" style="margin-top: 10px;">ग्राहक जोड़ें</button>
+        
+        <label style="margin-top: 10px; display: block;"><b>भेजे जाने वाला मैसेज चुनें:</b></label>
+        <select id="messageType">
+            <option value="welcome">🍰 स्वागत मैसेज (Welcome Message)</option>
+            <option value="birthday">🎂 जन्मदिन की शुभकामनाएं (Birthday Wish)</option>
+            <option value="anniversary">💐 एनिवर्सरी की शुभकामनाएं (Anniversary Wish)</option>
+        </select>
+
+        <button onclick="addCustomer()" style="margin-top: 15px;">डेटा सेव करें और WhatsApp भेजें</button>
     </div>
 
     <hr>
 
+    <!-- 🔍 सर्च बॉक्स ऑप्शन -->
     <div class="search-group">
         <label style="font-weight: bold; color: #333;">🔍 ग्राहक खोजें (नाम या मोबाइल नंबर डालें):</label>
         <input type="text" id="searchBar" class="search-box" placeholder="यहाँ टाइप करें..." onkeyup="filterCustomers()">
     </div>
 
+    <!-- ग्राहकों की तालिका (Table) -->
     <table>
         <thead>
             <tr>
@@ -96,25 +113,28 @@
             </tr>
         </thead>
         <tbody id="customerTableBody">
-            </tbody>
+            <!-- डेटा यहाँ लोड होगा -->
+        </tbody>
     </table>
 </div>
 
 <script>
     // ==========================================
-    // ⚙️ यहाँ अपनी WHATSAPP API की डिटेल्स डालें
+    // ⚙️ अपनी WHATSAPP API की क्रेडेंशियल्स यहाँ डालें
     // ==========================================
-    const WHATSAPP_TOKEN = "YOUR_PERMANENT_ACCESS_TOKEN_HERE"; // अपना परमानेंट टोकन यहाँ पेस्ट करें
-    const PHONE_NUMBER_ID = "YOUR_PHONE_NUMBER_ID_HERE";     // अपनी फ़ोन नंबर आईडी यहाँ पेस्ट करें
-    const TEMPLATE_NAME = "welcome_customer";                 // अपने अप्रूव्ड टेम्पलेट का नाम डालें
+    const WHATSAPP_TOKEN = "YOUR_PERMANENT_ACCESS_TOKEN_HERE"; 
+    const PHONE_NUMBER_ID = "YOUR_PHONE_NUMBER_ID_HERE";     
 
-    // ग्राहकों का डेटा रखने के लिए ऐरे (Array)
+    // 🏷️ मेटा (Meta) पर अप्रूव किए गए टेम्पलेट्स के नाम यहाँ लिखें:
+    const TEMPLATE_WELCOME = "welcome_customer";       // स्वागत टेम्पलेट का नाम
+    const TEMPLATE_BIRTHDAY = "om_bakery_birthday";    // जन्मदिन वाले टेम्पलेट का नाम
+    const TEMPLATE_ANNIVERSARY = "om_bakery_anniversary"; // एनिवर्सरी वाले टेम्पलेट का नाम
+
     let customers = [
         { name: "राहुल कुमार", phone: "9876543210" },
         { name: "अमित शर्मा", phone: "9123456789" }
     ];
 
-    // 1. लिस्ट को स्क्रीन पर दिखाने का फंक्शन
     function displayCustomers(dataToDisplay) {
         const tableBody = document.getElementById("customerTableBody");
         tableBody.innerHTML = ""; 
@@ -134,10 +154,10 @@
         });
     }
 
-    // 2. नया ग्राहक जोड़ने के लिए फंक्शन
     function addCustomer() {
         let name = document.getElementById("custName").value.trim();
         let phone = document.getElementById("custPhone").value.trim();
+        let msgType = document.getElementById("messageType").value; // चुना हुआ मैसेज टाइप
 
         if (name === "" || phone === "") {
             alert("कृपया नाम और नंबर दोनों भरें!");
@@ -147,8 +167,8 @@
         // लिस्ट में जोड़ें
         customers.push({ name: name, phone: phone });
         
-        // 🚀 यहाँ से WhatsApp मैसेज ट्रिगर होगा
-        sendWhatsAppNotification(name, phone);
+        // 🚀 चुना हुआ मैसेज टाइप पास करके WhatsApp भेजें
+        sendWhatsAppNotification(name, phone, msgType);
 
         // इनपुट बॉक्स खाली करें
         document.getElementById("custName").value = "";
@@ -158,7 +178,6 @@
         filterCustomers(); 
     }
 
-    // 3. ग्राहक डिलीट करने के लिए फंक्शन
     function deleteCustomer(phone) {
         if(confirm("क्या आप वाकई इस ग्राहक को डिलीट करना चाहते हैं?")) {
             customers = customers.filter(customer => customer.phone !== phone);
@@ -166,43 +185,45 @@
         }
     }
 
-    // 4. 🔍 सर्च और फ़िल्टर फंक्शन (लाइव सर्च)
     function filterCustomers() {
         let searchValue = document.getElementById("searchBar").value.toLowerCase().trim();
-        
         let filteredList = customers.filter(customer => {
-            return customer.name.toLowerCase().includes(searchValue) || 
-                   customer.phone.includes(searchValue);
+            return customer.name.toLowerCase().includes(searchValue) || customer.phone.includes(searchValue);
         });
-
         displayCustomers(filteredList);
     }
 
-    // 5. 📲 WhatsApp पर मैसेज भेजने का API फंक्शन
-    function sendWhatsAppNotification(customerName, customerPhone) {
-        // देश का कोड (91) सेट करना
+    // 📲 WhatsApp API फंक्शन (जो अब अलग-अलग टेम्पलेट संभाल सकता है)
+    function sendWhatsAppNotification(customerName, customerPhone, msgType) {
         let formattedPhone = customerPhone.startsWith("91") ? customerPhone : "91" + customerPhone;
         const url = `https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`;
+
+        // ड्रॉपडाउन के आधार पर सही टेम्पलेट का चुनाव करना
+        let chosenTemplate = TEMPLATE_WELCOME;
+        if (msgType === "birthday") {
+            chosenTemplate = TEMPLATE_BIRTHDAY;
+        } else if (msgType === "anniversary") {
+            chosenTemplate = TEMPLATE_ANNIVERSARY;
+        }
 
         const payload = {
             messaging_product: "whatsapp",
             to: formattedPhone,
             type: "template",
             template: {
-                name: TEMPLATE_NAME, 
-                language: { code: "hi" }, // अगर टेम्पलेट हिंदी में है तो 'hi' रखें
+                name: chosenTemplate, 
+                language: { code: "hi" }, 
                 components: [
                     {
                         type: "body",
                         parameters: [
-                            { type: "text", text: customerName } // टेम्पलेट में वेरिएबल की जगह नाम भेजने के लिए
+                            { type: "text", text: customerName } // यह ग्राहक का नाम टेम्पलेट में भर देगा
                         ]
                     }
                 ]
             }
         };
 
-        // मेटा सर्वर को रिक्वेस्ट भेजना
         fetch(url, {
             method: "POST",
             headers: {
@@ -214,17 +235,18 @@
         .then(response => response.json())
         .then(data => {
             if (data.messages) {
-                console.log("मैसेज सफलतापूर्वक भेज दिया गया है!");
+                alert(`मैसेज सफलता पूर्वक भेज दिया गया है! (${msgType} मैसेज)`);
             } else {
                 console.error("WhatsApp API एरर:", data);
+                alert("मैसेज भेजने में एरर आया। कृपया कंसोल चेक करें।");
             }
         })
         .catch(error => console.error("नेटवर्क एरर:", error));
     }
 
-    // पेज लोड होते ही लिस्ट दिखाने के लिए
     displayCustomers(customers);
 </script>
 
 </body>
 </html>
+
