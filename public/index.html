@@ -3,129 +3,228 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ओम बेकरी - कस्टमर डेटा मैनेजमेंट</title>
+    <title>ओम बेकरी - ग्राहक प्रबंधन</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f9f9f9;
             margin: 20px;
+            background-color: #f9f9f9;
         }
         .container {
-            max-width: 800px;
-            margin: 0 auto;
+            max-width: 600px;
             background: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+            margin: auto;
         }
-        h2, h3 { text-align: center; color: #333; }
-        form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-        input, textarea { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-        button { padding: 10px; background-color: #4CAF50; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; }
-        button:hover { background-color: #45a049; }
-        
-        /* टेबल और डिलीट बटन की स्टाइल */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        h2 { text-align: center; color: #d35400; }
+        .form-group, .search-group {
+            margin-bottom: 15px;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .search-box {
+            background-color: #f1f1f1;
+            border: 2px solid #d35400;
+        }
+        button {
+            background-color: #27ae60;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        button:hover { background-color: #219150; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
         th { background-color: #f2f2f2; }
-        .delete-btn { background-color: #f44336; padding: 5px 10px; font-size: 12px; }
-        .delete-btn:hover { background-color: #da190b; }
+        .btn-delete {
+            background-color: #c0392b;
+            padding: 5px 10px;
+            font-size: 12px;
+            width: auto;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-delete:hover { background-color: #a93226; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>🍰 ओम बेकरी - कस्टमर डेटा 🍰</h2>
+    <h2>🍰 ओम बेकरी - ग्राहक लिस्ट 🍰</h2>
     
-    <form id="customerForm">
-        <input type="text" id="name" placeholder="ग्राहक का नाम" required>
-        <input type="tel" id="mobile" placeholder="मोबाइल नंबर" required>
-        <input type="date" id="dob" placeholder="जन्मतिथि (Birthday)" required>
-        <textarea id="cakeDetails" placeholder="केक का विवरण (उदा: 1kg चॉकलेट ड्रिप केक)" rows="2"></textarea>
-        <button type="submit">कस्टमर डेटा सेव करें</button>
-    </form>
+    <div class="form-group">
+        <input type="text" id="custName" placeholder="ग्राहक का नाम डालें">
+        <input type="number" id="custPhone" placeholder="मोबाइल नंबर डालें">
+        <button onclick="addCustomer()" style="margin-top: 10px;">ग्राहक जोड़ें</button>
+    </div>
 
-    <h3>कस्टमर लिस्ट</h3>
+    <hr>
+
+    <div class="search-group">
+        <label style="font-weight: bold; color: #333;">🔍 ग्राहक खोजें (नाम या मोबाइल नंबर डालें):</label>
+        <input type="text" id="searchBar" class="search-box" placeholder="यहाँ टाइप करें..." onkeyup="filterCustomers()">
+    </div>
+
     <table>
         <thead>
             <tr>
                 <th>नाम</th>
-                <th>मोबाइल</th>
-                <th>जन्मतिथि</th>
-                <th>केक विवरण</th>
+                <th>मोबाइल नंबर</th>
                 <th>एक्शन</th>
             </tr>
         </thead>
-        <tbody id="customerList">
+        <tbody id="customerTableBody">
             </tbody>
     </table>
 </div>
 
 <script>
-    // 1. लोकल स्टोरेज से पुराना डेटा लोड करना या खाली एरे बनाना
-    let customers = JSON.parse(localStorage.getItem('bakeryCustomers')) || [];
+    // ==========================================
+    // ⚙️ यहाँ अपनी WHATSAPP API की डिटेल्स डालें
+    // ==========================================
+    const WHATSAPP_TOKEN = "YOUR_PERMANENT_ACCESS_TOKEN_HERE"; // अपना परमानेंट टोकन यहाँ पेस्ट करें
+    const PHONE_NUMBER_ID = "YOUR_PHONE_NUMBER_ID_HERE";     // अपनी फ़ोन नंबर आईडी यहाँ पेस्ट करें
+    const TEMPLATE_NAME = "welcome_customer";                 // अपने अप्रूव्ड टेम्पलेट का नाम डालें
 
-    const customerForm = document.getElementById('customerForm');
-    const customerList = document.getElementById('customerList');
+    // ग्राहकों का डेटा रखने के लिए ऐरे (Array)
+    let customers = [
+        { name: "राहुल कुमार", phone: "9876543210" },
+        { name: "अमित शर्मा", phone: "9123456789" }
+    ];
 
-    // 2. कस्टमर लिस्ट को स्क्रीन पर दिखाने का फंक्शन (Render Function)
-    function displayCustomers() {
-        customerList.innerHTML = ''; // पुरानी लिस्ट साफ करें
+    // 1. लिस्ट को स्क्रीन पर दिखाने का फंक्शन
+    function displayCustomers(dataToDisplay) {
+        const tableBody = document.getElementById("customerTableBody");
+        tableBody.innerHTML = ""; 
 
-        customers.forEach((customer, index) => {
-            const row = document.createElement('tr');
-            
-            row.innerHTML = `
+        if(dataToDisplay.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:red;">कोई ग्राहक नहीं मिला!</td></tr>`;
+            return;
+        }
+
+        dataToDisplay.forEach((customer) => {
+            let row = `<tr>
                 <td>${customer.name}</td>
-                <td>${customer.mobile}</td>
-                <td>${customer.dob}</td>
-                <td>${customer.cakeDetails || '-'}</td>
-                <td>
-                    <button class="delete-btn" onclick="deleteCustomer(${index})">डिलिट</button>
-                </td>
-            `;
-            customerList.appendChild(row);
+                <td>${customer.phone}</td>
+                <td><button class="btn-delete" onclick="deleteCustomer('${customer.phone}')">डिलीट</button></td>
+            </tr>`;
+            tableBody.innerHTML += row;
         });
     }
 
-    // 3. नया कस्टमर ऐड करने का लॉजिक
-    customerForm.addEventListener('submit', function(e) {
-        e.preventDefault();
+    // 2. नया ग्राहक जोड़ने के लिए फंक्शन
+    function addCustomer() {
+        let name = document.getElementById("custName").value.trim();
+        let phone = document.getElementById("custPhone").value.trim();
 
-        const newCustomer = {
-            name: document.getElementById('name').value,
-            mobile: document.getElementById('mobile').value,
-            dob: document.getElementById('dob').value,
-            cakeDetails: document.getElementById('cakeDetails').value
-        };
+        if (name === "" || phone === "") {
+            alert("कृपया नाम और नंबर दोनों भरें!");
+            return;
+        }
 
-        customers.push(newCustomer); // लिस्ट में नया कस्टमर जोड़ें
-        localStorage.setItem('bakeryCustomers', JSON.stringify(customers)); // लोकल स्टोरेज अपडेट करें
+        // लिस्ट में जोड़ें
+        customers.push({ name: name, phone: phone });
         
-        displayCustomers(); // लिस्ट को दोबारा रिफ्रेश करें
-        customerForm.reset(); // फॉर्म खाली करें
-    });
+        // 🚀 यहाँ से WhatsApp मैसेज ट्रिगर होगा
+        sendWhatsAppNotification(name, phone);
 
-    // 4. कस्टमर डिलीट करने का नया लॉजिक (Delete Function)
-    function deleteCustomer(index) {
-        // डिलीट करने से पहले एक बार कन्फर्मेशन पूछना अच्छा रहता है
-        if (confirm("क्या आप वाकई इस कस्टमर का डाटा डिलीट करना चाहते हैं?")) {
-            
-            // splice की मदद से उस नंबर वाले (index) कस्टमर को एरे से हटा देंगे
-            customers.splice(index, 1);
-            
-            // अपडेटेड लिस्ट को वापस LocalStorage में सेव करेंगे
-            localStorage.setItem('bakeryCustomers', JSON.stringify(customers));
-            
-            // स्क्रीन को रिफ्रेश करेंगे ताकि डिलीट हुआ कस्टमर गायब हो जाए
-            displayCustomers();
+        // इनपुट बॉक्स खाली करें
+        document.getElementById("custName").value = "";
+        document.getElementById("custPhone").value = "";
+
+        // लिस्ट अपडेट करें
+        filterCustomers(); 
+    }
+
+    // 3. ग्राहक डिलीट करने के लिए फंक्शन
+    function deleteCustomer(phone) {
+        if(confirm("क्या आप वाकई इस ग्राहक को डिलीट करना चाहते हैं?")) {
+            customers = customers.filter(customer => customer.phone !== phone);
+            filterCustomers(); 
         }
     }
 
-    // पेज लोड होते ही लिस्ट दिखाने के लिए फंक्शन कॉल करें
-    displayCustomers();
+    // 4. 🔍 सर्च और फ़िल्टर फंक्शन (लाइव सर्च)
+    function filterCustomers() {
+        let searchValue = document.getElementById("searchBar").value.toLowerCase().trim();
+        
+        let filteredList = customers.filter(customer => {
+            return customer.name.toLowerCase().includes(searchValue) || 
+                   customer.phone.includes(searchValue);
+        });
+
+        displayCustomers(filteredList);
+    }
+
+    // 5. 📲 WhatsApp पर मैसेज भेजने का API फंक्शन
+    function sendWhatsAppNotification(customerName, customerPhone) {
+        // देश का कोड (91) सेट करना
+        let formattedPhone = customerPhone.startsWith("91") ? customerPhone : "91" + customerPhone;
+        const url = `https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`;
+
+        const payload = {
+            messaging_product: "whatsapp",
+            to: formattedPhone,
+            type: "template",
+            template: {
+                name: TEMPLATE_NAME, 
+                language: { code: "hi" }, // अगर टेम्पलेट हिंदी में है तो 'hi' रखें
+                components: [
+                    {
+                        type: "body",
+                        parameters: [
+                            { type: "text", text: customerName } // टेम्पलेट में वेरिएबल की जगह नाम भेजने के लिए
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // मेटा सर्वर को रिक्वेस्ट भेजना
+        fetch(url, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${WHATSAPP_TOKEN}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.messages) {
+                console.log("मैसेज सफलतापूर्वक भेज दिया गया है!");
+            } else {
+                console.error("WhatsApp API एरर:", data);
+            }
+        })
+        .catch(error => console.error("नेटवर्क एरर:", error));
+    }
+
+    // पेज लोड होते ही लिस्ट दिखाने के लिए
+    displayCustomers(customers);
 </script>
 
 </body>
 </html>
-
