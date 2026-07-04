@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ओम बेकरी - ऑटोमैटिक रिमाइन्डर</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #fff5f5; padding: 20px; text-align: center; }
+        .box { max-width: 450px; margin: 30px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-top: 5px solid #e74c3c; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+        button { width: 95%; padding: 12px; background: #e74c3c; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        button:hover { background: #c0392b; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>🎂 ओम बेकरी ऑटोमैटिक डायरी 🎂</h2>
+    <p>यहाँ कस्टमर की एंट्री करें, अगले साल मैसेज अपने आप चला जाएगा।</p>
+    
+    <input type="text" id="name" placeholder="ग्राहक का नाम">
+    <input type="text" id="phone" placeholder="मोबाइल नंबर (91 के साथ लिखें, जैसे: 919876xxx)" value="91">
+    <input type="text" id="cake" placeholder="केक का फ्लेवर (जैसे: ब्लैक फॉरेस्ट)">
+    <input type="date" id="date">
+    <br><br>
+    <button onclick="submitData()">कस्टमर डेटा सेव करें</button>
+</div>
+
+<script>
+    // आज की तारीख डिफ़ॉल्ट सेट करें
+    document.getElementById('date').valueAsDate = new Date();
+
+    async function submitData() {
+        const name = document.getElementById('name').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const cake = document.getElementById('cake').value.trim();
+        const date = document.getElementById('date').value;
+
+        if(!name || phone.length < 12 || !cake || !date) {
+            alert("कृपया सभी जानकारी सही से भरें! फोन नंबर 91 से शुरू होना चाहिए।");
+            return;
+        }
+
+        const response = await fetch('/api/add-customer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, phone, cake, date })
+        });
+
+        const resData = await response.json();
+        if(resData.success) {
+            alert(resData.message);
+            document.getElementById('name').value = '';
+            document.getElementById('cake').value = '';
+        } else {
+            alert("खराब गड़बड़ हुई!");
+        }
+    }
+</script>
+</body>
+</html>
