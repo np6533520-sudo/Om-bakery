@@ -3,59 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ओम बेकरी - ऑटोमैटिक रिमाइन्डर</title>
+    <title>ओम बेकरी - कस्टमर डेटा मैनेजमेंट</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #fff5f5; padding: 20px; text-align: center; }
-        .box { max-width: 450px; margin: 30px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-top: 5px solid #e74c3c; }
-        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
-        button { width: 95%; padding: 12px; background: #e74c3c; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 16px; }
-        button:hover { background: #c0392b; }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+        }
+        h2, h3 { text-align: center; color: #333; }
+        form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        input, textarea { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px; background-color: #4CAF50; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        button:hover { background-color: #45a049; }
+        
+        /* टेबल और डिलीट बटन की स्टाइल */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .delete-btn { background-color: #f44336; padding: 5px 10px; font-size: 12px; }
+        .delete-btn:hover { background-color: #da190b; }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <h2>🎂 ओम बेकरी ऑटोमैटिक डायरी 🎂</h2>
-    <p>यहाँ कस्टमर की एंट्री करें, अगले साल मैसेज अपने आप चला जाएगा।</p>
+<div class="container">
+    <h2>🍰 ओम बेकरी - कस्टमर डेटा 🍰</h2>
     
-    <input type="text" id="name" placeholder="ग्राहक का नाम">
-    <input type="text" id="phone" placeholder="मोबाइल नंबर (91 के साथ लिखें, जैसे: 919876xxx)" value="91">
-    <input type="text" id="cake" placeholder="केक का फ्लेवर (जैसे: ब्लैक फॉरेस्ट)">
-    <input type="date" id="date">
-    <br><br>
-    <button onclick="submitData()">कस्टमर डेटा सेव करें</button>
+    <form id="customerForm">
+        <input type="text" id="name" placeholder="ग्राहक का नाम" required>
+        <input type="tel" id="mobile" placeholder="मोबाइल नंबर" required>
+        <input type="date" id="dob" placeholder="जन्मतिथि (Birthday)" required>
+        <textarea id="cakeDetails" placeholder="केक का विवरण (उदा: 1kg चॉकलेट ड्रिप केक)" rows="2"></textarea>
+        <button type="submit">कस्टमर डेटा सेव करें</button>
+    </form>
+
+    <h3>कस्टमर लिस्ट</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>नाम</th>
+                <th>मोबाइल</th>
+                <th>जन्मतिथि</th>
+                <th>केक विवरण</th>
+                <th>एक्शन</th>
+            </tr>
+        </thead>
+        <tbody id="customerList">
+            </tbody>
+    </table>
 </div>
 
 <script>
-    // आज की तारीख डिफ़ॉल्ट सेट करें
-    document.getElementById('date').valueAsDate = new Date();
+    // 1. लोकल स्टोरेज से पुराना डेटा लोड करना या खाली एरे बनाना
+    let customers = JSON.parse(localStorage.getItem('bakeryCustomers')) || [];
 
-    async function submitData() {
-        const name = document.getElementById('name').value.trim();
-        const phone = document.getElementById('phone').value.trim();
-        const cake = document.getElementById('cake').value.trim();
-        const date = document.getElementById('date').value;
+    const customerForm = document.getElementById('customerForm');
+    const customerList = document.getElementById('customerList');
 
-        if(!name || phone.length < 12 || !cake || !date) {
-            alert("कृपया सभी जानकारी सही से भरें! फोन नंबर 91 से शुरू होना चाहिए।");
-            return;
-        }
+    // 2. कस्टमर लिस्ट को स्क्रीन पर दिखाने का फंक्शन (Render Function)
+    function displayCustomers() {
+        customerList.innerHTML = ''; // पुरानी लिस्ट साफ करें
 
-        const response = await fetch('/api/add-customer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, phone, cake, date })
+        customers.forEach((customer, index) => {
+            const row = document.createElement('tr');
+            
+            row.innerHTML = `
+                <td>${customer.name}</td>
+                <td>${customer.mobile}</td>
+                <td>${customer.dob}</td>
+                <td>${customer.cakeDetails || '-'}</td>
+                <td>
+                    <button class="delete-btn" onclick="deleteCustomer(${index})">डिलिट</button>
+                </td>
+            `;
+            customerList.appendChild(row);
         });
+    }
 
-        const resData = await response.json();
-        if(resData.success) {
-            alert(resData.message);
-            document.getElementById('name').value = '';
-            document.getElementById('cake').value = '';
-        } else {
-            alert("खराब गड़बड़ हुई!");
+    // 3. नया कस्टमर ऐड करने का लॉजिक
+    customerForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const newCustomer = {
+            name: document.getElementById('name').value,
+            mobile: document.getElementById('mobile').value,
+            dob: document.getElementById('dob').value,
+            cakeDetails: document.getElementById('cakeDetails').value
+        };
+
+        customers.push(newCustomer); // लिस्ट में नया कस्टमर जोड़ें
+        localStorage.setItem('bakeryCustomers', JSON.stringify(customers)); // लोकल स्टोरेज अपडेट करें
+        
+        displayCustomers(); // लिस्ट को दोबारा रिफ्रेश करें
+        customerForm.reset(); // फॉर्म खाली करें
+    });
+
+    // 4. कस्टमर डिलीट करने का नया लॉजिक (Delete Function)
+    function deleteCustomer(index) {
+        // डिलीट करने से पहले एक बार कन्फर्मेशन पूछना अच्छा रहता है
+        if (confirm("क्या आप वाकई इस कस्टमर का डाटा डिलीट करना चाहते हैं?")) {
+            
+            // splice की मदद से उस नंबर वाले (index) कस्टमर को एरे से हटा देंगे
+            customers.splice(index, 1);
+            
+            // अपडेटेड लिस्ट को वापस LocalStorage में सेव करेंगे
+            localStorage.setItem('bakeryCustomers', JSON.stringify(customers));
+            
+            // स्क्रीन को रिफ्रेश करेंगे ताकि डिलीट हुआ कस्टमर गायब हो जाए
+            displayCustomers();
         }
     }
+
+    // पेज लोड होते ही लिस्ट दिखाने के लिए फंक्शन कॉल करें
+    displayCustomers();
 </script>
+
 </body>
 </html>
+
